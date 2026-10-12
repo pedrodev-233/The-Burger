@@ -20,13 +20,22 @@
         </button>
         <nav class="site-nav" id="site-nav" aria-label="Navegação principal">
             <a href="#cardapio">Cardápio</a>
+            <a href="#pedido">Fazer pedido</a>
+            <a href="{% url 'hamburgueria' %}">Hamburgueria</a>
             <a href="#sobre">Nossa casa</a>
-            <a href="#visite">Visite a gente</a>
-            <a class="nav-order" href="#cardapio">Pedir agora <span aria-hidden="true">↗</span></a>
+            <a class="nav-order" href="#pedido">Pedir agora <span aria-hidden="true">↗</span></a>
         </nav>
     </header>
 
     <main>
+        {% if messages %}
+            <div class="messages" aria-live="polite">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <section class="hero" id="inicio">
             <div class="hero-copy">
                 <p class="eyebrow"><span></span> Feito na brasa, sem atalhos</p>
@@ -52,24 +61,91 @@
         <section class="menu-section section-wrap" id="cardapio">
             <div class="section-heading">
                 <div><p class="eyebrow"><span></span> Escolhas difíceis. Mordidas fáceis.</p><h2>Favoritos da <em>casa</em></h2></div>
-                <a class="text-link" href="#visite">Ver o cardápio completo <span aria-hidden="true">↗</span></a>
+                <a class="text-link" href="#pedido">Ver o cardápio completo <span aria-hidden="true">↗</span></a>
             </div>
             <div class="menu-grid">
-                <article class="menu-item">
-                    <div class="menu-photo photo-classic" role="img" aria-label="Burger clássico artesanal"></div>
-                    <div class="menu-item-info"><div><h3>O da Casa</h3><p>Blend 160g, queijo prato, cebola na brasa e molho da casa.</p></div><span class="price">R$ 32</span></div>
-                    <span class="item-number">01</span>
-                </article>
-                <article class="menu-item">
-                    <div class="menu-photo photo-cheese" role="img" aria-label="Cheeseburger com queijo derretido"></div>
-                    <div class="menu-item-info"><div><h3>Queijo Sem Fim</h3><p>Blend 160g, cheddar cremoso, picles e maionese defumada.</p></div><span class="price">R$ 36</span></div>
-                    <span class="item-number">02</span>
-                </article>
-                <article class="menu-item">
-                    <div class="menu-photo photo-fries" role="img" aria-label="Batatas fritas crocantes"></div>
-                    <div class="menu-item-info"><div><h3>Batata da Brasa</h3><p>Batata rústica, páprica, alecrim e molho pra mergulhar.</p></div><span class="price">R$ 18</span></div>
-                    <span class="item-number">03</span>
-                </article>
+                {% for product in products %}
+                    <article class="menu-item">
+                        <div class="menu-photo{% if product.category == 'burger' %} photo-classic{% elif product.category == 'acompanhamento' %} photo-fries{% else %} photo-cheese{% endif %}" role="img" aria-label="{{ product.name }}"></div>
+                        <div class="menu-item-info">
+                            <div>
+                                <h3>{{ product.name }}</h3>
+                                <p>{{ product.description }}</p>
+                            </div>
+                            <span class="price">R$ {{ product.price|floatformat:2 }}</span>
+                        </div>
+                        <span class="item-number">{{ forloop.counter|stringformat:"02d" }}</span>
+                    </article>
+                {% empty %}
+                    <p class="empty-state">Nenhum item disponível no cardápio no momento.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="order-section section-wrap" id="pedido">
+            <div class="section-heading">
+                <div><p class="eyebrow"><span></span> Pedido rápido</p><h2>Faça seu <em>pedido</em></h2></div>
+            </div>
+
+            <div class="order-layout">
+                <form class="order-form" method="post" action="{% url 'pedido' %}">
+                    {% csrf_token %}
+                    <div class="field-grid">
+                        <label>
+                            <span>Escolha seu burger</span>
+                            <select id="product" name="product" required>
+                                {% for product in products %}
+                                    <option value="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}">
+                                        {{ product.name }} — R$ {{ product.price|floatformat:2 }}
+                                    </option>
+                                {% empty %}
+                                    <option value="">Nenhum item cadastrado</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>
+                            <span>Quantidade</span>
+                            <input id="quantity" type="number" name="quantity" min="1" max="10" value="1">
+                        </label>
+                        <label>
+                            <span>Seu nome</span>
+                            <input type="text" name="customer_name" placeholder="Seu nome" required>
+                        </label>
+                        <label>
+                            <span>Telefone</span>
+                            <input type="tel" name="phone" placeholder="(11) 99999-9999" required>
+                        </label>
+                        <label class="field-full">
+                            <span>Endereço</span>
+                            <input type="text" name="address" placeholder="Rua da Brasa, 214" required>
+                        </label>
+                        <label class="field-full">
+                            <span>Observações</span>
+                            <textarea name="notes" rows="4" placeholder="Sem cebola, molho extra, etc..."></textarea>
+                        </label>
+                    </div>
+
+                    <div class="order-summary">
+                        <div class="summary-line">
+                            <span>Pedido</span>
+                            <strong id="selected-product-name">{% if products %}{{ products.0.name }}{% endif %}</strong>
+                        </div>
+                        <div class="summary-line">
+                            <span>Valor unitário</span>
+                            <strong id="selected-product-price">{% if products %}R$ {{ products.0.price|floatformat:2 }}{% endif %}</strong>
+                        </div>
+                        <div class="summary-line">
+                            <span>Quantidade</span>
+                            <strong id="order-qty">1</strong>
+                        </div>
+                        <div class="summary-line total">
+                            <span>Total</span>
+                            <strong id="order-total">{% if products %}R$ {{ products.0.price|floatformat:2 }}{% endif %}</strong>
+                        </div>
+                    </div>
+
+                    <button class="button button-dark" type="submit">Enviar pedido <span aria-hidden="true">↗</span></button>
+                </form>
             </div>
         </section>
 
@@ -80,7 +156,7 @@
 
         <section class="visit-section section-wrap" id="visite">
             <div><p class="eyebrow"><span></span> A mesa tá posta</p><h2>Seu próximo<br>burger tá <em>perto.</em></h2></div>
-            <div class="visit-details"><p>Chega mais pra comer sem pressa, com guardanapo extra e conversa boa.</p><address>Rua da Brasa, 214<br>Centro — São Paulo, SP</address><p class="hours">Ter a dom, das 18h às 23h<br>Sexta e sábado até meia-noite</p><a class="button button-light" href="#cardapio">Escolher meu burger <span aria-hidden="true">↗</span></a></div>
+            <div class="visit-details"><p>Chega mais pra comer sem pressa, com guardanapo extra e conversa boa.</p><address>Rua da Brasa, 214<br>Centro — São Paulo, SP</address><p class="hours">Ter a dom, das 18h às 23h<br>Sexta e sábado até meia-noite</p><a class="button button-light" href="#pedido">Escolher meu burger <span aria-hidden="true">↗</span></a></div>
         </section>
     </main>
 
