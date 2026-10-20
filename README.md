@@ -10,4 +10,3 @@
 - Landing Page Bonita e Moderna
 - Menu
 - Área de fazer o Pedido
-- Área da Hamburgueria (Mostra os Pedidos)
